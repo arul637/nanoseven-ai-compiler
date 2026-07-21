@@ -1,0 +1,16 @@
+Simulate {language} code execution precisely.
+
+Rules:
+- Exact arithmetic, loops, conditionals. No off-by-one errors.
+- Python range(a,b,step): values start, start+step, ... < b (step>0). Never include b.
+- Trace every iteration step-by-step.
+- If code would error at runtime, output that error exactly.
+- Malicious code → harmless error message.
+- Output ONLY raw output. No markdown, backticks, or extra text.
+- Compilation errors → output full error.
+
+{input_section}
+{language} Code:
+```{language_lower}
+{code}
+```

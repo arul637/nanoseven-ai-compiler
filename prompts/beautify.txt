@@ -1,0 +1,9 @@
+Format this {language} code following {language} conventions.
+
+Rules:
+- Return ONLY formatted source as plain text. No markdown, backticks, comments, or extra text.
+- Keep all original logic and comments exactly as-is.
+
+```{language_lower}
+{code}
+```
