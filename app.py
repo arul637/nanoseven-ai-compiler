@@ -1,231 +1,156 @@
-from flask import Flask, render_template, request, jsonify
-from config import config, ConfigError
-from language_manager import language_manager
-from security import security_validator
-from ai_engine import ai_engine
-from autocomplete_engine import local_autocomplete
-from debug_engine import debug_engine
-from beautifier import beautifier
-from sharing import sharing_manager
-from download_manager import download_manager
-from response_parser import ErrorResponse
-from logger import logger
-import traceback
+import json
+import os
+import re
+import urllib.error
+import urllib.request
+
+from flask import Flask, jsonify, render_template, request
+
+from config import *
 
 app = Flask(__name__)
-app.secret_key = config.secret_key
-app.config["MAX_CONTENT_LENGTH"] = config.max_request_size
+PROMPT_DIR = os.path.join(os.path.dirname(__file__), "prompts")
+
+MAX_CODE_SIZE = 50000
+MAX_OUTPUT_SIZE = 32000
 
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    logger.error(f"Unhandled exception: {str(e)}\n{traceback.format_exc()}")
-    return jsonify({"success": False, "error": "Internal server error", "simulation": True}), 500
+def load_prompt(name):
+    with open(os.path.join(PROMPT_DIR, name), "r") as f:
+        return f.read()
 
+
+def build_prompt(template_name, language, code, stdin_input=""):
+    template = load_prompt(template_name)
+    lang_lower = language.lower()
+    if stdin_input and stdin_input.strip():
+        input_section = (
+            "\nUSER INPUT:\n"
+            "The program prompts for user input. Simulate the program receiving "
+            "these exact inputs (one per line, in order):\n"
+            f"{stdin_input}\n"
+            "Show prompt messages and simulate with these inputs.\n"
+        )
+    else:
+        input_section = (
+            "\nUSER INPUT:\n"
+            "If the program prompts for user input, show the prompt message "
+            "and simulate with a reasonable default value (e.g. \"User\" for "
+            "name prompts, \"42\" for number prompts).\n"
+        )
+    return template.format(
+        language=language, language_lower=lang_lower, code=code,
+        input_section=input_section
+    )
+
+
+def clean_output(text):
+    text = re.sub(r"^```\w*\s*\n?", "", text)
+    text = re.sub(r"\n```\s*$", "", text)
+    text = re.sub(r"^```\n?", "", text)
+    text = re.sub(r"\n```$", "", text)
+    return text.strip()
+
+
+def query_ollama(prompt):
+    data = json.dumps({
+        "model": MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "options": {"num_predict": MAX_OUTPUT_SIZE},
+    }).encode()
+    req = urllib.request.Request(
+        f"{OLLAMA_URL}/api/generate",
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=TIMEOUT)
+        result = json.loads(resp.read())
+        text = result.get("response", "").strip()
+        return clean_output(text)
+    except urllib.error.HTTPError as e:
+        raise ConnectionError(f"Ollama HTTP error: {e.code} - {e.reason}")
+    except urllib.error.URLError:
+        raise ConnectionError(
+            "Cannot connect to Ollama at http://localhost:11434. Is it running?"
+        )
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON response from Ollama")
+    except Exception as e:
+        raise RuntimeError(str(e))
+
+
+def validate(data):
+    if not data:
+        return "No data provided"
+    lang = data.get("language", "")
+    code = data.get("code", "")
+    if not lang:
+        return "No language selected"
+    if lang not in LANGUAGES:
+        return f"Unsupported language: {lang}"
+    if not code or not code.strip():
+        return "No code provided"
+    if len(code) > MAX_CODE_SIZE:
+        return f"Code too large (max {MAX_CODE_SIZE//1000}KB)"
+    return None
+
+
+# ----- Routes -----
 
 @app.route("/")
 def index():
-    return render_template("index.html")
-
-
-@app.route("/api/languages")
-def get_languages():
-    try:
-        langs = language_manager.get_all()
-        return jsonify({"success": True, "languages": langs})
-    except Exception as e:
-        logger.error(f"Error fetching languages: {str(e)}")
-        return jsonify({"success": False, "error": "Failed to load languages"}), 500
+    return render_template("index.html", languages=LANGUAGES)
 
 
 @app.route("/api/run", methods=["POST"])
-def run_code():
+def api_run():
+    data = request.get_json()
+    err = validate(data)
+    if err:
+        return jsonify({"error": err}), 400
+    lang = data["language"]
+    code = data["code"]
+    stdin_input = data.get("input", "")
+
+    prompt = build_prompt("run.txt", lang, code, stdin_input)
     try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        valid_len, len_error = security_validator.validate_code_length(code)
-        if not valid_len:
-            return jsonify(ErrorResponse(error=len_error).to_dict()), 400
-
-        result = ai_engine.simulate_execution(language, code)
-        return jsonify(result)
-
+        output = query_ollama(prompt)
+        return jsonify({"output": output})
+    except ConnectionError as e:
+        return jsonify({"error": str(e)}), 502
     except Exception as e:
-        logger.error(f"Run error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal server error during simulation").to_dict()), 500
-
-
-@app.route("/api/debug", methods=["POST"])
-def debug_code():
-    try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        valid_len, len_error = security_validator.validate_code_length(code)
-        if not valid_len:
-            return jsonify(ErrorResponse(error=len_error).to_dict()), 400
-
-        result = debug_engine.debug(language, code)
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Debug error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal server error during debug simulation").to_dict()), 500
-
-
-@app.route("/api/autocomplete", methods=["POST"])
-def autocomplete():
-    try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-        cursor_position = data.get("cursor_position", len(code))
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        local_suggestions = local_autocomplete.get_suggestions(language, code, cursor_position)
-
-        ai_completion = None
-        if config.ai_autocomplete_enabled and not local_suggestions:
-            ai_result = ai_engine.generate_completion(language, code, cursor_position)
-            if ai_result.get("success") and ai_result.get("completion"):
-                ai_completion = ai_result["completion"]
-
-        return jsonify({
-            "success": True,
-            "local": local_suggestions,
-            "ai": ai_completion,
-            "simulation": True,
-        })
-
-    except Exception as e:
-        logger.error(f"Autocomplete error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal autocomplete error").to_dict()), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/beautify", methods=["POST"])
-def beautify_code():
+def api_beautify():
+    data = request.get_json()
+    err = validate(data)
+    if err:
+        return jsonify({"error": err}), 400
+    lang = data["language"]
+    code = data["code"]
+
+    prompt = build_prompt("beautify.txt", lang, code)
     try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        valid_len, len_error = security_validator.validate_code_length(code)
-        if not valid_len:
-            return jsonify(ErrorResponse(error=len_error).to_dict()), 400
-
-        result = beautifier.beautify(language, code)
-        return jsonify(result)
-
+        output = query_ollama(prompt)
+        return jsonify({"output": output})
+    except ConnectionError as e:
+        return jsonify({"error": str(e)}), 502
     except Exception as e:
-        logger.error(f"Beautify error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal beautify error").to_dict()), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/share", methods=["POST"])
-def share_code():
-    try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        result = sharing_manager.create_share(language, code)
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Share error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal share error").to_dict()), 500
-
-
-@app.route("/api/share/<share_id>")
-def get_share(share_id):
-    try:
-        result = sharing_manager.get_share(share_id)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Get share error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal share retrieval error").to_dict()), 500
-
-
-@app.route("/api/download", methods=["POST"])
-def download_code():
-    try:
-        valid, data = security_validator.validate_json_request()
-        if not valid:
-            return jsonify(ErrorResponse(error=data).to_dict()), 400
-
-        language = data.get("language", "").strip().lower()
-        code = data.get("code", "")
-
-        valid_lang, lang_error = security_validator.validate_language(language, language_manager)
-        if not valid_lang:
-            return jsonify(ErrorResponse(error=lang_error).to_dict()), 400
-
-        return download_manager.create_download(language, code)
-
-    except Exception as e:
-        logger.error(f"Download error: {str(e)}\n{traceback.format_exc()}")
-        return jsonify(ErrorResponse(error="Internal download error").to_dict()), 500
-
-
-@app.route("/api/stop", methods=["POST"])
-def stop_request():
-    return jsonify({
-        "success": True,
-        "message": "AI request cancelled",
-        "simulation": True,
-    })
+def api_share():
+    data = request.get_json()
+    err = validate(data)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"language": data["language"], "app": "Nano AI Compiler"})
 
 
 if __name__ == "__main__":
-    try:
-        logger.info("Starting Nano AI Compiler")
-        logger.info(f"Model: {config.gemini_model}")
-        logger.info(f"Max code length: {config.max_code_length}")
-        logger.info(f"AI Autocomplete: {'enabled' if config.ai_autocomplete_enabled else 'disabled'}")
-        app.run(debug=(config.flask_env == "development"), host="0.0.0.0", port=5001)
-    except ConfigError as e:
-        logger.error(f"Configuration error: {str(e)}")
-        print(f"\nERROR: {str(e)}")
-        print("Please create a .env file with your Gemini API key:")
-        print("  cp .env.example .env")
-        print("  Then add your GEMINI_API_KEY to .env")
-    except Exception as e:
-        logger.error(f"Startup error: {str(e)}\n{traceback.format_exc()}")
-        print(f"\nERROR: Failed to start application: {str(e)}")
+    app.run(debug=True, host=HOST, port=PORT)

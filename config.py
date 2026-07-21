@@ -1,35 +1,28 @@
-import os
-from dotenv import load_dotenv
+OLLAMA_URL = "http://localhost:11434"
+MODEL = "llama3.1:8b"
+TIMEOUT = 60
 
-load_dotenv()
+HOST = '0.0.0.0'
+PORT = 5001
 
+LANGUAGES = [
+    "Python", "JavaScript", "TypeScript", "C", "C++", "Java", "C#",
+    "Go", "Rust", "PHP", "Ruby", "Kotlin", "Swift", "Bash", "SQL",
+    "HTML", "CSS"
+]
 
-class ConfigError(Exception):
-    pass
+EXTENSIONS = {
+    "Python": "py", "JavaScript": "js", "TypeScript": "ts",
+    "C": "c", "C++": "cpp", "Java": "java", "C#": "cs",
+    "Go": "go", "Rust": "rs", "PHP": "php", "Ruby": "rb",
+    "Kotlin": "kt", "Swift": "swift", "Bash": "sh", "SQL": "sql",
+    "HTML": "html", "CSS": "css"
+}
 
-
-class Config:
-    def __init__(self):
-        self.flask_env = os.getenv("FLASK_ENV", "development")
-        self.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key")
-
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        self.gemini_temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
-        self.gemini_max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "4096"))
-
-        self.ai_timeout = int(os.getenv("AI_TIMEOUT", "60"))
-        self.max_code_length = int(os.getenv("MAX_CODE_LENGTH", "20000"))
-        self.max_request_size = int(os.getenv("MAX_REQUEST_SIZE", "25000"))
-
-        self.ai_autocomplete_enabled = os.getenv("AI_AUTOCOMPLETE_ENABLED", "true").lower() == "true"
-        self.ai_autocomplete_debounce = int(os.getenv("AI_AUTOCOMPLETE_DEBOUNCE", "700"))
-
-        self._validate()
-
-    def _validate(self):
-        if not self.gemini_api_key or self.gemini_api_key == "your-gemini-api-key":
-            raise ConfigError("Gemini API key is not configured. Set GEMINI_API_KEY in .env")
-
-
-config = Config()
+MONACO_LANG = {
+    "Python": "python", "JavaScript": "javascript", "TypeScript": "typescript",
+    "C": "c", "C++": "cpp", "Java": "java", "C#": "csharp",
+    "Go": "go", "Rust": "rust", "PHP": "php", "Ruby": "ruby",
+    "Kotlin": "kotlin", "Swift": "swift", "Bash": "shell", "SQL": "sql",
+    "HTML": "html", "CSS": "css"
+}
