@@ -1,0 +1,52 @@
+.hidden {
+    display: none !important;
+}
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--bc);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.success-text {
+    color: var(--green);
+}
+
+.error-text {
+    color: var(--red);
+}
+
+.info-text {
+    color: var(--blue);
+}
+
+.mono {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .output-text {
+        font-size: 12px;
+    }
+
+    #debug-content {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano AI Compiler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reset.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/autocomplete.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/language-panel.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">&#9670;</span>
+                    <span class="logo-text">NANO AI COMPILER</span>
+                </div>
+                <span id="status-badge" class="status-badge">SIMULATION MODE ACTIVE</span>
+            </div>
+            <div class="header-center">
+                <div class="language-selector">
+                    <select id="language-select"></select>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="btn-run" class="action-btn action-run" title="Run Code">
+                    <span class="btn-icon">&#9654;</span>
+                    <span class="btn-label">RUN</span>
+                </button>
+                <button id="btn-debug" class="action-btn action-debug" title="Debug Code">
+                    <span class="btn-icon">&#9881;</span>
+                    <span class="btn-label">DEBUG</span>
+                </button>
+                <button id="btn-stop" class="action-btn action-stop" title="Stop" disabled>
+                    <span class="btn-icon">&#9632;</span>
+                    <span class="btn-label">STOP</span>
+                </button>
+                <button id="btn-beautify" class="action-btn action-beautify" title="Beautify Code">
+                    <span class="btn-icon">&#9830;</span>
+                    <span class="btn-label">BEAUTIFY</span>
+                </button>
+                <button id="btn-share" class="action-btn action-share" title="Share Code">
+                    <span class="btn-icon">&#8681;</span>
+                    <span class="btn-label">SHARE</span>
+                </button>
+                <button id="btn-download" class="action-btn action-download" title="Download Code">
+                    <span class="btn-icon">&#8615;</span>
+                    <span class="btn-label">DOWNLOAD</span>
+                </button>
+            </div>
+        </header>
+
+        <main id="main">
+            <div id="editor-container">
+                <div id="editor"></div>
+            </div>
+            <aside id="language-panel">
+                <div class="panel-header">
+                    <span class="panel-title">LANGUAGES</span>
+                </div>
+                <div class="panel-search">
+                    <input type="text" id="lang-search" placeholder="Search languages..." />
+                </div>
+                <div id="language-list"></div>
+            </aside>
+        </main>
+
+        <footer id="output-panel">
+            <div class="output-tabs">
+                <button class="output-tab active" data-tab="output">OUTPUT</button>
+                <button class="output-tab" data-tab="error">ERROR</button>
+                <button class="output-tab" data-tab="debug">DEBUG</button>
+                <button class="output-tab" data-tab="system">SYSTEM</button>
+            </div>
+            <div class="output-content">
+                <div id="tab-output" class="tab-pane active">
+                    <pre id="output-text" class="output-text">Ready to simulate...</pre>
+                </div>
+                <div id="tab-error" class="tab-pane">
+                    <pre id="error-text" class="output-text">No errors.</pre>
+                </div>
+                <div id="tab-debug" class="tab-pane">
+                    <div id="debug-content">
+                        <div class="debug-section">
+                            <h4>Execution Steps</h4>
+                            <pre id="debug-steps" class="output-text">No debug data.</pre>
+                        </div>
+                        <div class="debug-section">
+                            <h4>Variables</h4>
+                            <pre id="debug-variables" class="output-text">No variables.</pre>
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-system" class="tab-pane">
+                    <div class="system-info">
+                        <div class="sys-row">
+                            <span class="sys-label">Simulation Mode:</span>
+                            <span class="sys-value sys-active">Active</span>
+                        </div>
+                        <div class="sys-row">
+                            <span class="sys-label">Code Execution:</span>
+                            <span class="sys-value sys-disabled">Disabled</span>
+                        </div>
+                        <div class="sys-row">
+                            <span class="sys-label">Filesystem Access:</span>
+                            <span class="sys-value sys-disabled">Disabled</span>
+                        </div>
+                        <div class="sys-row">
+                            <span class="sys-label">Network Access:</span>
+                            <span class="sys-value sys-disabled">Disabled</span>
+                        </div>
+                        <div class="sys-row">
+                            <span class="sys-label">Process Execution:</span>
+                            <span class="sys-value sys-disabled">Disabled</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Share Code</h3>
+                <button id="modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message"></p>
+                <div id="modal-action-area"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-ok" class="modal-btn modal-btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <span id="loading-indicator" class="loading hidden">Simulating...</span>
+
+    <script>
+        require.config({
+            paths: {
+                vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/language.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/autocomplete.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/execution.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/debug.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/beautify.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/share.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/download.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
