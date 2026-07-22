@@ -1,0 +1,16 @@
+Format and beautify the following {language} source code.
+
+STRICT RULES:
+- Return ONLY the formatted source code as plain text
+- Do NOT wrap the code in markdown code blocks, backticks, or any formatting
+- Do NOT add any comments, explanations, or extra text of any kind
+- Do NOT change the logic, behavior, or structure of the code
+- Do NOT add new comments that were not in the original code
+- Do NOT remove existing comments
+- Use proper indentation and follow {language} conventions
+- Return pure source code only, nothing else
+
+Code to beautify:
+```{language_lower}
+{code}
+```

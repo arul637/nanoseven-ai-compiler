@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nano AI Compiler</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<!-- Font Awesome CDN for premium vector icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <div class="logo">
+      <svg class="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span>Nano AI Compiler</span>
+    </div>
+    <nav class="toolbar">
+      <button class="btn btn-blue" data-action="run"><i class="fas fa-play"></i><span class="btn-label"> RUN</span></button>
+      <button class="btn btn-red" data-action="stop" disabled><i class="fas fa-stop"></i><span class="btn-label"> STOP</span></button>
+      <span class="desktop-group">
+        <button class="btn btn-gold" data-action="download"><i class="fas fa-download"></i><span class="btn-label"> DOWNLOAD</span></button>
+        <button class="btn btn-orange" data-action="beautify"><i class="fas fa-magic"></i><span class="btn-label"> BEAUTIFY</span></button>
+        <span class="toolbar-separator"></span>
+        <button class="btn btn-red" data-action="security"><i class="fas fa-shield-alt"></i><span class="btn-label"> Security</span></button>
+        <button class="btn btn-indigo" data-action="complexity"><i class="fas fa-hourglass-half"></i><span class="btn-label"> Complexity</span></button>
+        <button class="btn btn-magenta" data-action="bug_detector"><i class="fas fa-bug"></i><span class="btn-label"> Bug Detector</span></button>
+        <button class="btn btn-green" data-action="challenge"><i class="fas fa-trophy"></i><span class="btn-label"> Challenge</span></button>
+      </span>
+      <div class="mobile-dropdown">
+        <button class="btn btn-dropdown-toggle" data-dropdown-toggle="analysis"><i class="fas fa-microchip"></i><span class="btn-label"> Analysis</span><i class="fas fa-chevron-down dropdown-arrow"></i></button>
+        <div class="dropdown-menu" data-dropdown-menu="analysis">
+          <button class="btn btn-red" data-action="security"><i class="fas fa-shield-alt"></i> Security</button>
+          <button class="btn btn-blue" data-action="complexity"><i class="fas fa-hourglass-half"></i> Complexity</button>
+          <button class="btn btn-orange" data-action="bug_detector"><i class="fas fa-bug"></i> Bug Detector</button>
+          <button class="btn btn-green" data-action="challenge"><i class="fas fa-trophy"></i> Challenge</button>
+        </div>
+      </div>
+      <div class="mobile-dropdown">
+        <button class="btn btn-dropdown-toggle" data-dropdown-toggle="tools"><i class="fas fa-tools"></i><span class="btn-label"> Tools</span><i class="fas fa-chevron-down dropdown-arrow"></i></button>
+        <div class="dropdown-menu" data-dropdown-menu="tools">
+          <button class="btn btn-gold" data-action="download"><i class="fas fa-download"></i> Download</button>
+          <button class="btn btn-orange" data-action="beautify"><i class="fas fa-magic"></i> Beautify</button>
+        </div>
+      </div>
+    </nav>
+    <div class="header-right">
+      <select id="langSelect" class="lang-select">
+        {% for lang in languages %}
+        <option value="{{ lang }}">{{ lang }}</option>
+        {% endfor %}
+      </select>
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+  </header>
+
+  <div id="workspace">
+    <div id="editor-container"></div>
+    <div id="analysis-sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">AI Intelligence Layer</span>
+        <button class="sidebar-close" id="analysisCloseBtn">&times;</button>
+      </div>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-analysis-tab="security">Security</button>
+        <button class="sidebar-tab" data-analysis-tab="complexity">Complexity</button>
+        <button class="sidebar-tab" data-analysis-tab="bug_detector">Bug Detector</button>
+        <button class="sidebar-tab" data-analysis-tab="challenge">Challenge</button>
+        <button class="sidebar-tab" data-analysis-tab="error_fix">Error Fix</button>
+      </div>
+      <div class="sidebar-body">
+        <div class="analysis-panel active" id="analysis-security">
+          <div class="analysis-placeholder">
+            <p style="margin-bottom: 12px; color: var(--text2); font-style: normal;">Analyze your code for potential security issues.</p>
+            <button class="btn btn-red btn-analyze" data-analyze="security">Analyze Security</button>
+          </div>
+        </div>
+        <div class="analysis-panel" id="analysis-complexity">
+          <div class="analysis-placeholder">
+            <p style="margin-bottom: 12px; color: var(--text2); font-style: normal;">Analyze the time and space complexity of your algorithm.</p>
+            <button class="btn btn-blue btn-analyze" data-analyze="complexity">Analyze Complexity</button>
+          </div>
+        </div>
+        <div class="analysis-panel" id="analysis-bug_detector">
+          <div class="analysis-placeholder">
+            <p style="margin-bottom: 12px; color: var(--text2); font-style: normal;">Statically inspect the code for potential bugs.</p>
+            <button class="btn btn-orange btn-analyze" data-analyze="bug_detector">Detect Bugs</button>
+          </div>
+        </div>
+        <div class="analysis-panel" id="analysis-challenge">
+          <div class="analysis-placeholder">
+            <p style="margin-bottom: 12px; color: var(--text2); font-style: normal;">Generate personalized coding challenges.</p>
+            <button class="btn btn-green btn-analyze" data-analyze="challenge">Generate Challenge</button>
+          </div>
+        </div>
+        <div class="analysis-panel" id="analysis-error_fix">
+          <div class="analysis-placeholder">
+            <p style="margin-bottom: 12px; color: var(--text2); font-style: normal;">Statically analyze and fix bugs in your code.</p>
+            <button class="btn btn-orange btn-analyze" data-analyze="error_fix">AI Error Fix</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resize-handle" title="Drag to resize output panel"></div>
+
+  <div id="output-container">
+    <div class="input-section" id="inputSection">
+      <button class="input-toggle" id="inputToggle">Stdin Input <span class="input-arrow">&#9660;</span></button>
+      <div class="input-body" id="inputBody">
+        <textarea id="stdinInput" class="stdin-textarea" rows="3" placeholder="Enter input values (one per line)&#10;e.g. Alice&#10;42" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="output-header">
+      <div class="output-tabs">
+        <button class="output-tab active" data-tab="output">Output</button>
+        <button class="output-tab" data-tab="error">Error</button>
+      </div>
+      <div class="output-actions" style="display: flex; align-items: center; gap: 8px;">
+        <button class="btn btn-orange" id="btnFixError" style="display: none; padding: 4px 10px; font-size: 11px;"><i class="fas fa-wrench"></i> Fix</button>
+        <button class="btn-copy" id="btnCopy" title="Copy active tab"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+    </div>
+    <div class="output-body-wrap">
+      <div id="output-content" class="output-content active"></div>
+      <div id="error-content" class="output-content"></div>
+    </div>
+  </div>
+</div>
+
+<button class="sidebar-toggle-btn" id="sidebarToggle" title="Analysis Panel"><i class="fas fa-shield-alt"></i></button>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  window.__LANGUAGES__ = {{ languages | tojson }};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/loader.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
