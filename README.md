@@ -1,123 +1,188 @@
 # Nano AI Compiler
 
-A minimalistic, AI-powered online code compiler that simulates code execution using local Ollama models. Instead of running code on real hardware, Nano AI Compiler sends source code to a large language model (llama3.1:8b) which simulates the expected output safely.
+Nano AI Compiler is a minimalistic, AI-powered online code compiler that simulates program execution using AI instead of executing user code on real hardware. The project safely predicts program output, compiler errors, runtime errors, and stack traces using an AI model.
 
-## How It Works
+The application supports multiple AI providers through separate Git branches, allowing you to choose between local Ollama, Google Gemini, Groq, or NVIDIA AI models. Since each branch contains provider-specific implementation and configuration, select the appropriate branch before installation.
 
-Nano AI Compiler never executes user code. It uses no `exec`, `eval`, `compile`, `subprocess`, `os.system`, Docker containers, VMs, or real compilers/interpreters. Every operation is simulated by AI:
+Nano AI Compiler is designed with a zero-execution-risk architecture: user code is never executed using real compilers, interpreters, shells, containers, virtual machines, or operating-system commands. C, C++, Java, C#, Go, Rust, PHP, Ruby, Kotlin, Swift, Bash, SQL, HTML, and CSS.
 
-- **Code execution** — The AI predicts program output and full compiler/runtime errors
-- **Beautification** — The AI formats code without changing logic
-- **Code analysis** — Detailed explanation with line-by-line breakdown for PDF export
-- **Dangerous operations** (filesystem, shell, network) — Safely simulated without accessing the host
+## Branches and AI Providers
 
-Prompt templates are stored in `prompts/` as plain text files, making them easy to customize.
+This project contains four branches. Each branch uses a different AI provider and has its own implementation.
 
-## Prerequisites
+| Branch   | AI Provider       | Execution Method |
+| -------- | ----------------- | ---------------- |
+| `main`   | Ollama            | Local AI model   |
+| `gemini` | Google Gemini API | Gemini API       |
+| `groq`   | Groq API          | Groq API         |
+| `nvidia` | NVIDIA AI API     | NVIDIA API       |
 
-### Install Ollama
+Select the branch corresponding to the AI provider you want to use before following the installation and setup instructions.
+
+## Installation and Setup
+
+### 1. Clone the Repository
 
 ```bash
-# macOS
-brew install ollama
+git clone https://github.com/arul637/nano-ai-compiler.git
+cd nano-ai-compiler
+```
 
-# Linux
+### 2. Select an AI Provider Branch
+
+Choose one of the available branches.
+
+#### Ollama — Local AI
+
+```bash
+git checkout main
+```
+
+#### Google Gemini
+
+```bash
+git checkout gemini
+```
+
+#### Groq
+
+```bash
+git checkout groq
+```
+
+#### NVIDIA AI
+
+```bash
+git checkout nvidia
+```
+
+Each branch contains its own provider-specific code and configuration.
+
+### 3. Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+Activate the virtual environment.
+
+#### macOS / Linux
+
+```bash
+source venv/bin/activate
+```
+
+#### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+### 4. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## AI Provider Configuration
+
+### Ollama Branch
+
+The `main` branch uses a locally hosted Ollama model.
+
+Install Ollama:
+
+#### macOS
+
+```bash
+brew install ollama
+```
+
+#### Linux
+
+```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-### Pull the Model
+Pull the required model:
 
 ```bash
 ollama pull llama3.1:8b
 ```
 
-Ollama must be running on `http://localhost:11434` before starting the application.
-
-## Installation
-
-```bash
-cd nano-ai-compiler
-pip install -r requirements.txt
-```
-
-## Running
-
-```bash
-python app.py
-```
-
-Open http://localhost:5000 in your browser.
-
-Make sure Ollama is running:
+Start the Ollama server:
 
 ```bash
 ollama serve
 ```
 
-## Supported Languages
+Ollama must be available at:
 
-Python, JavaScript, TypeScript, C, C++, Java, C#, Go, Rust, PHP, Ruby, Kotlin, Swift, Bash, SQL, HTML, CSS
-
-## Features
-
-- **RUN** — Simulate code execution; shows output and full error messages (compiler errors, stack traces) for C, Java, Python, etc.
-- **STOP** — Cancel active AI request with AbortController
-- **SHARE** — Copy code and language info to clipboard
-- **DOWNLOAD** — Generate a PDF with source code + detailed AI explanation
-- **BEAUTIFY** — AI-powered code formatting (no markdown wrapping, no extra comments)
-- **Monaco Editor** — Professional code editor with custom nano-dark theme
-- **Language-aware autocomplete** — Keywords and snippets for 17 languages
-- **Output/Error tabs** — Separate views for output and error messages with copy buttons
-- **Language dropdown** — Top-right select menu, editor takes full width
-- **Zero execution risk** — No user code ever runs on your machine
-
-## Project Structure
-
-```
-nano-ai-compiler/
-├── app.py              # Flask routes only
-├── config.py           # Configuration constants
-├── prompts/            # Prompt templates for Ollama
-│   ├── run.txt         #   Code execution simulation
-│   ├── beautify.txt    #   Code formatting
-│   └── explain.txt     #   Code explanation for PDF
-├── requirements.txt
-├── README.md
-├── templates/
-│   └── index.html
-└── static/
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── app.js
+```text
+http://localhost:11434
 ```
 
-## Security Model
+Then start the application:
 
-| Risk | Mitigation |
-|------|-----------|
-| Code execution | No exec/eval/compile/subprocess/os.system |
-| Container escape | No Docker, VMs, or sandbox environments |
-| File system access | All file operations are AI-simulated |
-| Network access | Simulated by the model; no real connections |
-| Data persistence | No database; no logs of user code stored |
+```bash
+python app.py
+```
 
-The application runs HTTP requests only to the local Ollama API. User code is processed exclusively by the AI model.
+### Gemini, Groq, and NVIDIA Branches
 
-## Limitations
+The `gemini`, `groq`, and `nvidia` branches require their respective API keys.
 
-- Output quality depends on the model's understanding of the language
-- Complex or highly system-dependent code may produce inaccurate results
-- Long-running simulations may time out (60s default)
-- Requires a local Ollama instance with the llama3.1:8b model
-- AI-generated output may occasionally include hallucinations or incorrect behavior
-- Not suitable for production code validation or security-critical analysis
+Create a `.env` file in the project root and add the required API key according to the selected branch.
 
-## Tech Stack
+Example:
 
-- **Backend:** Flask (Python)
-- **Frontend:** Vanilla JavaScript, CSS
-- **Editor:** Monaco Editor (CDN)
-- **AI:** Ollama (local) + llama3.1:8b
-- **PDF:** fpdf2
-- **Dependencies:** Flask, fpdf2
+```env
+API_KEY=your_api_key_here
+```
+
+Never commit your API key to GitHub.
+
+After configuring the API key, start the application:
+
+```bash
+python app.py
+```
+
+Open the application in your browser:
+
+```text
+http://localhost:5000
+```
+
+## Sample Output
+
+### Successful Program Execution
+
+The AI analyzes the submitted source code and simulates the expected program output.
+
+![Sample Output](screenshots/output.webp)
+
+### Compiler or Runtime Error
+
+The AI can also simulate compiler errors, runtime errors, stack traces, and other language-specific error messages.
+
+![Sample Error](screenshots/error.webp)
+
+## Contributing
+
+Contributions, suggestions, and improvements are welcome.
+
+If you discover a bug or have an idea for improving Nano AI Compiler, feel free to open an issue in the repository.
+
+## Contact
+
+If you face any issues, have suggestions, or want to discuss the project, feel free to contact me:
+
+**Email:** [sarulkumaran.21042004@gmail.com](mailto:sarulkumaran.21042004@gmail.com)
+**Phone:** 9626192029
+
+You can also raise an issue in the GitHub repository.
+
+---
+
+Made with curiosity, AI, and code.
